@@ -1,0 +1,49 @@
+name: selftest
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  selftest:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.8', '3.12']
+        exclude:
+          - os: macos-latest
+            python-version: '3.8'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: selftest (no dependencies installed)
+        run: python3 selftest.py
+
+      - name: worked example
+        run: python3 claim_check.py --config examples/claims.yml
+
+      - name: the example must actually be able to fail
+        run: |
+          sed -i.bak 's/<!--claim:unique-events-->744/<!--claim:unique-events-->700/' examples/REPORT.md
+          if python3 claim_check.py --config examples/claims.yml --no-annotations; then
+            echo "::error::a drifted number passed the gate"; exit 1
+          fi
+          mv examples/REPORT.md.bak examples/REPORT.md
+
+  dogfood:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: regenerate the artifact this README quotes
+        run: python3 selftest.py
+      - name: run the action on its own repository
+        uses: ./
+        with:
+          claims-file: .github/claims.yml
+          report: claim-report.json

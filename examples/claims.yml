@@ -1,0 +1,31 @@
+# Every number this report publishes, bound to the artifact it came from.
+# Run:  python3 claim_check.py --config examples/claims.yml
+defaults:
+  doc: examples/REPORT.md
+  json: examples/metrics.json
+
+claims:
+  # 1. marker mode -- the doc carries <!--claim:id-->value<!--/claim-->
+  - id: unique-events
+    path: ledger.unique_events
+
+  - id: proposals
+    path: ledger.proposals
+
+  - id: tier2-total
+    path: tier2.total
+
+  - id: tier2-auto
+    path: tier2.auto_committed
+
+  # 2. pattern mode -- no markers in the doc, the sentence itself is the anchor
+  - id: autonomous-rate
+    path: rates.autonomous
+    format: percent:2
+    pattern: "**{value}%** ran without a human"
+
+  # 3. a list index, a thousands separator, and a sentence written by a human
+  - id: nightly-passed
+    path: runs[0].passed
+    format: comma
+    pattern: "nightly suite passed {value} checks"

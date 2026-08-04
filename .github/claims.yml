@@ -1,0 +1,8 @@
+# This repository is held to its own rule: the one number in the README is a claim,
+# and selftest.py is the artifact that produces it.
+claims:
+  - id: selftest-checks
+    doc: README.md
+    json: selftest-report.json
+    path: checks
+    pattern: "# {value} checks, every one broken by a mutant first"

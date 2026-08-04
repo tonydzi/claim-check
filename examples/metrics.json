@@ -1,0 +1,18 @@
+{
+  "window": "2026-06-29..2026-07-14",
+  "ledger": {
+    "unique_events": 744,
+    "proposals": 71
+  },
+  "tier2": {
+    "total": 17,
+    "auto_committed": 0
+  },
+  "rates": {
+    "autonomous": 0.6197
+  },
+  "runs": [
+    {"name": "nightly", "passed": 1284},
+    {"name": "weekly", "passed": 97}
+  ]
+}

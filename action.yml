@@ -1,0 +1,93 @@
+name: 'Claim Check - verify numbers in docs'
+description: 'Fail CI when a number in your README or report no longer reproduces from the artifact it came from. Deterministic: no LLM, no API key, no network.'
+author: 'Palo Alto AI Research Lab'
+
+branding:
+  icon: 'check-square'
+  color: 'green'
+
+inputs:
+  claims-file:
+    description: 'Path to the claims file (YAML or JSON), relative to working-directory.'
+    required: false
+    default: '.github/claims.yml'
+  working-directory:
+    description: 'Directory to run in. Paths inside the claims file are relative to it.'
+    required: false
+    default: '.'
+  fix:
+    description: 'Rewrite drifted numbers in the docs instead of only reporting them. Commit the result yourself.'
+    required: false
+    default: 'false'
+  allow-commands:
+    description: 'Permit cmd: sources, which run arbitrary shell. Refused on pull requests from forks unless trust-fork-commands is also set.'
+    required: false
+    default: 'false'
+  trust-fork-commands:
+    description: 'Override the refusal to run cmd: sources when the claims file comes from a forks pull request. This hands the runner to whoever opened the PR.'
+    required: false
+    default: 'false'
+  strict-unbacked:
+    description: 'Also warn about numbers in the docs that are bound to no source. Experimental and noisy by design.'
+    required: false
+    default: 'false'
+  fail-on-drift:
+    description: 'Exit non-zero when a number drifted. Errors (missing source, bad path) always fail regardless.'
+    required: false
+    default: 'true'
+  report:
+    description: 'Optional path for a JSON report, relative to working-directory.'
+    required: false
+    default: ''
+
+outputs:
+  checked-count:
+    description: 'How many claims were checked.'
+    value: ${{ steps.claim-check.outputs.checked-count }}
+  drift-count:
+    description: 'How many claims drifted or went missing.'
+    value: ${{ steps.claim-check.outputs.drift-count }}
+  error-count:
+    description: 'How many claims could not be checked at all (broken config or unreadable source).'
+    value: ${{ steps.claim-check.outputs.error-count }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: claim-check
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        CC_ACTION_PATH: ${{ github.action_path }}
+        CC_CLAIMS: ${{ inputs.claims-file }}
+        CC_FIX: ${{ inputs.fix }}
+        CC_ALLOW_COMMANDS: ${{ inputs.allow-commands }}
+        CC_TRUST_FORK: ${{ inputs.trust-fork-commands }}
+        CC_IS_FORK_PR: ${{ github.event.pull_request.head.repo.fork }}
+        CC_STRICT_UNBACKED: ${{ inputs.strict-unbacked }}
+        CC_FAIL_ON_DRIFT: ${{ inputs.fail-on-drift }}
+        CC_REPORT: ${{ inputs.report }}
+      run: |
+        set -euo pipefail
+        PY=$(command -v python3 || command -v python)
+        if [ -z "$PY" ]; then
+          echo "::error::claim-check needs python3 on the runner"
+          exit 2
+        fi
+        # plain ifs on purpose: under `set -e` a failing `[ ... ] && ...` line
+        # would abort the whole step instead of just skipping the flag
+        # On a fork's pull request the claims file belongs to whoever opened it,
+        # so `cmd:` there is a shell handed to a stranger. Refuse by default.
+        if [ "$CC_ALLOW_COMMANDS" = "true" ] && [ "$CC_IS_FORK_PR" = "true" ] \
+           && [ "$CC_TRUST_FORK" != "true" ]; then
+          echo "::error::claim-check: allow-commands is on and this pull request comes from a fork. The claims file is the fork's, so cmd: would run its shell on this runner. Refusing. Use json:/text: sources for fork PRs, or set trust-fork-commands: true if you really mean it."
+          exit 2
+        fi
+
+        args=( "$CC_ACTION_PATH/claim_check.py" --config "$CC_CLAIMS" )
+        if [ "$CC_FIX" = "true" ]; then args+=( --fix ); fi
+        if [ "$CC_ALLOW_COMMANDS" = "true" ]; then args+=( --allow-commands ); fi
+        if [ "$CC_STRICT_UNBACKED" = "true" ]; then args+=( --strict-unbacked ); fi
+        if [ "$CC_FAIL_ON_DRIFT" != "true" ]; then args+=( --no-fail-on-drift ); fi
+        if [ -n "$CC_REPORT" ]; then args+=( --report "$CC_REPORT" ); fi
+        "$PY" "${args[@]}"
