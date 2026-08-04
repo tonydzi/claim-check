@@ -199,7 +199,7 @@ unbacked_ignore:
 ```bash
 git clone https://github.com/Palo-Alto-AI-Research-Lab/claim-check
 cd claim-check
-python3 selftest.py                                  # 90 checks, every one broken by a mutant first
+python3 selftest.py                                  # 98 checks, every one broken by a mutant first
 python3 claim_check.py --config examples/claims.yml  # the worked example
 ```
 

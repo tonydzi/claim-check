@@ -1,6 +1,6 @@
 {
-  "checks": 90,
-  "ok": 90,
+  "checks": 98,
+  "ok": 98,
   "failed": 0,
-  "version": "1.0.0"
+  "version": "1.0.1"
 }

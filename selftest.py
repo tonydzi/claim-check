@@ -18,7 +18,18 @@ import tempfile
 import contextlib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# A runner has no PyYAML, this laptop does -- so the whole suite runs twice, and
+# the second pass forces the built-in parser. CI found two divergences that the
+# single local pass could not see; this is how they stay found.
+NO_YAML = os.environ.get("CLAIM_CHECK_SELFTEST_NO_YAML") == "1"
+if NO_YAML:
+    sys.modules["yaml"] = None            # makes `import yaml` raise ImportError
+
 import claim_check as cc  # noqa: E402
+
+print("config parser under test: %s" % ("built-in (PyYAML blocked)" if NO_YAML
+                                        else "PyYAML if installed"))
 
 PASSED, FAILED = [], []
 
@@ -301,6 +312,35 @@ try:
 except cc.ConfigError as exc:
     check("MUTANT unsupported syntax raises with a line number", "line" in str(exc), exc)
 
+# The two divergences CI found on 2026-08-04: escapes inside double-quoted
+# scalars. Checked against PyYAML itself whenever it is importable, so the two
+# parsers cannot drift apart again unnoticed.
+TRICKY = [
+    'a: "processed (\\\\d+) rows"\n',
+    'a: "echo \'{\\"k\\": 1}\'"\n',
+    "a: 'literal \\d stays'\n",
+    'a: "tab\\there"\n',
+    "a: 'it''s quoted'\n",
+    'a: "trailing space "\n',
+]
+try:
+    import yaml as _real_yaml
+except ImportError:
+    _real_yaml = None
+for snippet in TRICKY:
+    mine = cc.mini_yaml(snippet)
+    if _real_yaml is None:
+        check("escape snippet parses: %r" % snippet.strip()[:28], isinstance(mine, dict))
+    else:
+        theirs = _real_yaml.safe_load(snippet)
+        check("parser parity: %r" % snippet.strip()[:28], mine == theirs,
+              "mini=%r yaml=%r" % (mine, theirs))
+try:
+    cc.mini_yaml('a: "bad \\q escape"\n')
+    check("MUTANT unknown escape raises", False, "no exception")
+except cc.ConfigError as exc:
+    check("MUTANT unknown escape raises by name", "\\q" in str(exc), exc)
+
 
 print("\n8. strict-unbacked: numbers bound to nothing (experimental)")
 
@@ -411,6 +451,21 @@ with repo(base_files(doc=BASE_DOC.replace("12,345", "12,000"))) as root:
     check("report names the line", any(r.get("line") for r in report["claims"]), report)
     check("report carries the version", report["version"] == cc.__version__, report)
 
+
+SECOND_PASS_FAILED = False
+if not NO_YAML:
+    print("\n11. the same suite again, with PyYAML blocked")
+    import subprocess
+    env = dict(os.environ, CLAIM_CHECK_SELFTEST_NO_YAML="1")
+    proc = subprocess.run([sys.executable, os.path.abspath(__file__)], env=env,
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                          universal_newlines=True)
+    tail = [ln for ln in proc.stdout.splitlines() if ln.strip()][-3:]
+    for line in tail:
+        print("  | " + line)
+    SECOND_PASS_FAILED = proc.returncode != 0
+    check("built-in parser pass is green", not SECOND_PASS_FAILED,
+          "\n".join(proc.stdout.splitlines()[-25:]))
 
 print("\n%d checks: %d ok, %d failed" % (len(PASSED) + len(FAILED), len(PASSED), len(FAILED)))
 

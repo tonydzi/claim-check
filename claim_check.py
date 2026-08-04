@@ -29,7 +29,7 @@ import re
 import subprocess
 import sys
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 OK, DRIFT, MISSING, ERROR = "OK", "DRIFT", "MISSING", "ERROR"
 
@@ -177,10 +177,43 @@ def _strip_comment(text):
     return "".join(out).rstrip()
 
 
+_ESCAPES = {"\\": "\\", '"': '"', "/": "/", "n": "\n", "t": "\t", "r": "\r",
+            "0": "\0", "b": "\b", "f": "\f", "e": "\x1b", " ": " "}
+
+
+def unescape(text):
+    """YAML double-quoted escapes. Unknown ones are refused, not passed through.
+
+    Getting this wrong is invisible: `regex: "(\\d+)"` would silently become a
+    pattern matching a literal backslash, and the claim would fail for a reason
+    that has nothing to do with the number.
+    """
+    out, i = [], 0
+    while i < len(text):
+        ch = text[i]
+        if ch != "\\":
+            out.append(ch)
+            i += 1
+            continue
+        if i + 1 >= len(text):
+            raise ConfigError("string ends with a lone backslash: %r" % text)
+        nxt = text[i + 1]
+        if nxt in _ESCAPES:
+            out.append(_ESCAPES[nxt])
+            i += 2
+            continue
+        raise ConfigError(
+            "unsupported escape \\%s in %r -- single-quote the string, or install "
+            "PyYAML for the full grammar" % (nxt, text))
+    return "".join(out)
+
+
 def scalar(text):
     text = text.strip()
     if len(text) >= 2 and text[0] == text[-1] and text[0] in "'\"":
-        return text[1:-1]
+        inner = text[1:-1]
+        # single quotes are literal in YAML apart from the doubled quote
+        return inner.replace("''", "'") if text[0] == "'" else unescape(inner)
     low = text.lower()
     if low in ("true", "yes"):
         return True
