@@ -235,6 +235,27 @@ Related gates from the same practice:
 - [verbatim-citation-gate](https://github.com/Palo-Alto-AI-Research-Lab/verbatim-citation-gate) —
   catch fabricated RAG citations before they reach the user.
 
+## Roadmap
+
+**Now — [v1.0.1](https://github.com/Palo-Alto-AI-Research-Lab/claim-check/releases).** The action
+itself: bind a number in prose to the artifact that produced it, `cmd:` and file sources, tolerance
+and format handling, an exit-code contract, fix-instead-of-fail, and the experimental unbacked-number
+pass.
+
+**Next**, in the order we would take them:
+
+- **The Marketplace listing.** The action works and is public; it is *not* listed, because listing
+  needs a legal agreement and 2FA that only the account owner can complete. "Not listed" and "not
+  working" are different things, and this is the first.
+- **More source kinds.** Today a claim binds to a file or a command. JSON pointers into a results
+  file are the most-asked next one.
+- **A quieter first run.** The unbacked-number pass is experimental precisely because on a real
+  README it finds more than you want on day one.
+
+Versioning is semver and **every noticeable change ships as a new release** — for an action that
+gates other people's CI, the release feed is the only honest way to see what changed under you
+before you bump the tag you depend on.
+
 ## Requirements
 
 Python 3.8+ on the runner. Nothing else. PyYAML is used if it happens to be installed;
