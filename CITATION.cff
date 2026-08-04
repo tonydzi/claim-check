@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use claim-check in research or software, please cite it as below."
+title: "claim-check"
+type: software
+authors:
+  - family-names: Dziatkovskii
+    given-names: Anton
+    orcid: "https://orcid.org/0000-0001-7408-3054"
+    affiliation: "Palo Alto AI Research Lab"
+repository-code: "https://github.com/Palo-Alto-AI-Research-Lab/claim-check"
+url: "https://github.com/Palo-Alto-AI-Research-Lab/claim-check"
+license: MIT
+abstract: >-
+  Every number you publish is a claim. claim-check binds each figure in a document to the
+  artifact it came from (a JSON file, a log, a command's output), recomputes it on every CI
+  run, and fails the build when doc and source drift apart. No LLM, no API key, no network,
+  no dependencies. The verdict is an exit code. Free, MIT.
+keywords:
+  - continuous-integration
+  - documentation
+  - verification
+  - github-action
+  - reproducibility
