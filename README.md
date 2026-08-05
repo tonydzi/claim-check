@@ -3,7 +3,7 @@
 **Every number you publish is a claim. Prove it in CI.**
 
 [![selftest](https://github.com/Palo-Alto-AI-Research-Lab/claim-check/actions/workflows/selftest.yml/badge.svg)](https://github.com/Palo-Alto-AI-Research-Lab/claim-check/actions/workflows/selftest.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/Palo-Alto-AI-Research-Lab/claim-check/blob/main/LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue.svg)](#requirements)
 [![deps: none](https://img.shields.io/badge/dependencies-none-lightgrey.svg)](#requirements)
 [![no LLM](https://img.shields.io/badge/LLM-not%20used-lightgrey.svg)](#what-this-is-not)
@@ -31,6 +31,37 @@ CLAIM-CHECK: 6 claims - 4 ok - 2 drift - 0 errors -> DRIFT
 ```
 
 No LLM, no API key, no network, no dependencies. The verdict is an exit code.
+
+## Install
+
+Two ways to run the same gate, and they share one file.
+
+**In CI, as a GitHub Action** — nothing to install:
+
+```yaml
+- uses: Palo-Alto-AI-Research-Lab/claim-check@v1
+  with:
+    claims-file: .github/claims.yml
+```
+
+**On your machine, as a command** — for checking a doc before you push it:
+
+```bash
+pip install "git+https://github.com/Palo-Alto-AI-Research-Lab/claim-check"
+claim-check --config .github/claims.yml
+```
+
+<!-- pypi-install-marker -->
+
+> **Note the hyphen.** `claimcheck` (no hyphen) on PyPI is an unrelated project
+> about retrieval-based fact-checking of prose. This one is `claim-check`, and it
+> only ever asks whether a number still comes out of the artifact you bound it to.
+
+The command and the Action run the same `claim_check.py` and honour the same
+[exit-code contract](#exit-code-contract). PyYAML is optional in both
+(`pip install "claim-check[yaml] @ git+…"` if your claims file needs full YAML);
+without it a small strict parser handles the file and refuses, by line number,
+anything it does not understand.
 
 ## Quickstart (three files)
 
@@ -199,12 +230,12 @@ unbacked_ignore:
 ```bash
 git clone https://github.com/Palo-Alto-AI-Research-Lab/claim-check
 cd claim-check
-python3 selftest.py                                  # 98 checks, every one broken by a mutant first
+python3 selftest.py                                  # 108 checks, every one broken by a mutant first
 python3 claim_check.py --config examples/claims.yml  # the worked example
 ```
 
 The selftest count above is itself a claim: `selftest.py` writes
-`selftest-report.json`, [`.github/claims.yml`](.github/claims.yml) binds this README to
+`selftest-report.json`, [`.github/claims.yml`](https://github.com/Palo-Alto-AI-Research-Lab/claim-check/blob/main/.github/claims.yml) binds this README to
 it, and CI runs the gate on its own repository. If someone adds a check and forgets this
 line, the build goes red.
 
@@ -277,4 +308,4 @@ anything it does not understand.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](https://github.com/Palo-Alto-AI-Research-Lab/claim-check/blob/main/LICENSE).

@@ -1,0 +1,69 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "claim-check"
+dynamic = ["version"]
+description = "Every number you publish is a claim. Bind it to the artifact it came from and prove it in CI -- no LLM, no network, no dependencies."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+authors = [{ name = "Palo Alto AI Research Lab" }]
+keywords = [
+    "ci",
+    "documentation",
+    "drift",
+    "verification",
+    "reproducibility",
+    "benchmarks",
+    "claims",
+    "github-actions",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = []  # stdlib only; PyYAML is used if present, never required
+
+[project.optional-dependencies]
+yaml = ["PyYAML>=5.1"]
+
+[project.scripts]
+claim-check = "claim_check:cli"
+
+[project.urls]
+Homepage = "https://github.com/Palo-Alto-AI-Research-Lab/claim-check"
+Repository = "https://github.com/Palo-Alto-AI-Research-Lab/claim-check"
+Issues = "https://github.com/Palo-Alto-AI-Research-Lab/claim-check/issues"
+Changelog = "https://github.com/Palo-Alto-AI-Research-Lab/claim-check/blob/main/CHANGELOG.md"
+
+[tool.hatch.version]
+path = "claim_check.py"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["claim_check.py"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "claim_check.py",
+    "selftest.py",
+    "action.yml",
+    "examples/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+]

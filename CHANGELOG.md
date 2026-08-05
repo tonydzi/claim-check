@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.1.0 - 2026-08-05
+
+**Installable as a command.** `pip install claim-check` gives a `claim-check` CLI that
+runs the same file as the Action and honours the same exit-code contract — for checking a
+doc before you push it, not only after. The Action is unchanged and keeps working exactly
+as before.
+
+**A crash no longer masquerades as DRIFT.** Found by an external reviewer on the packaging
+pass: a config, source, or doc that is not valid UTF-8 escaped as a `UnicodeDecodeError`
+and exited **1** — the code reserved for *"your documented number changed"*. CI would have
+blamed the document for a broken checkout. Now:
+
+- every text read goes through one `read_text()` that reports an unreadable file as ERROR,
+  naming the file and the byte;
+- a per-claim read failure is one ERROR row, not a dead run;
+- and as a backstop, *any* uncaught exception exits 2 with its traceback intact, because a
+  broken checker must never be reported as a drifted document.
+
+The suite grew 98 → 108 checks, each one proven by a mutant that makes it fail, and a new
+CI job installs the built wheel into a bare environment and asserts all three exit codes
+through the installed console script — the wheel is a different artifact from the
+checkout, and nothing was testing it.
+
 ## v1.0.1 - 2026-08-04
 
 Fixes a bug that only appeared on a real runner: without PyYAML installed, the built-in

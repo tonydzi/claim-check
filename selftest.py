@@ -452,9 +452,86 @@ with repo(base_files(doc=BASE_DOC.replace("12,345", "12,000"))) as root:
     check("report carries the version", report["version"] == cc.__version__, report)
 
 
+print("\n11. the installed console script keeps the exit-code contract")
+# `python3 claim_check.py` runs under a __main__ guard; `pip install claim-check`
+# installs a console script that never sees that guard. So the "ConfigError ->
+# exit 2" rule has to live inside cli(), or a pip user meets a traceback and
+# exit 1 -- the code the contract reserves for DRIFT, which would make a dead
+# checker look like a drifted document.
+#
+# Every ConfigError raised today is already caught inside run(), so no real
+# input reaches this path. That is exactly why the escape is injected here: an
+# unreachable guard still has to be a working guard, and an untested one is not
+# a guard at all.
+
+
+def _main_that_escapes(argv=None):
+    raise cc.ConfigError("escaped from main")
+
+
+_real_main = cc.main
+try:
+    cc.main = _main_that_escapes
+    check("cli() converts an escaped ConfigError into ERROR",
+          cc.cli([]) == cc.EXIT_ERROR, cc.cli([]))
+    # the mutant: without the wrapper the same input raises instead of returning
+    escaped = False
+    try:
+        cc.main([])
+    except cc.ConfigError:
+        escaped = True
+    check("main() alone would not -- the wrapper is load-bearing", escaped)
+finally:
+    cc.main = _real_main
+
+# Found by an external reviewer on the packaging pass: a config that is not
+# UTF-8 used to escape as a UnicodeDecodeError and exit 1 -- DRIFT -- so a
+# broken checkout was reported as a changed document.
+with repo(base_files()) as root:
+    with open(os.path.join(root, "claims.yml"), "wb") as fh:
+        fh.write(b"\xff\xfeclaims:\n")
+    code, out, _ = run(root)
+    check("a non-UTF-8 config is ERROR, not DRIFT", code == cc.EXIT_ERROR, (code, out))
+    check("and it names the file and the reason", "not UTF-8" in out, out)
+
+with repo(base_files()) as root:
+    with open(os.path.join(root, "metrics.json"), "wb") as fh:
+        fh.write(b'{"a": {"b": 1\xff2}}')
+    code, out, _ = run(root)
+    check("a non-UTF-8 source is ERROR, not DRIFT", code == cc.EXIT_ERROR, (code, out))
+
+with repo(base_files()) as root:
+    with open(os.path.join(root, "DOC.md"), "wb") as fh:
+        fh.write(b"Total: <!--claim:total-->12,\xff345<!--/claim-->\n")
+    code, out, _ = run(root)
+    check("a non-UTF-8 doc is ERROR, not DRIFT", code == cc.EXIT_ERROR, (code, out))
+
+# ...and nothing at all may reach the caller as an exit 1 it did not choose.
+_real_run = cc.run
+try:
+    def _boom(*a, **kw):
+        raise RuntimeError("boom")
+    cc.run = _boom
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(io.StringIO()):
+        crash_code = cc.cli(["--config", "claims.yml"])
+    check("an unexpected crash is ERROR, not DRIFT", crash_code == cc.EXIT_ERROR,
+          (crash_code, buf.getvalue()))
+    check("the crash still ends with a verdict line",
+          buf.getvalue().strip().splitlines()[-1].startswith("CLAIM-CHECK:"), buf.getvalue())
+finally:
+    cc.run = _real_run
+
+with io.open(os.path.join(HERE, "pyproject.toml"), encoding="utf-8") as fh:
+    _pyproject = fh.read()
+check("pyproject.toml wires the console script to cli, not main",
+      'claim-check = "claim_check:cli"' in _pyproject)
+check("the packaged version is the module version",
+      'path = "claim_check.py"' in _pyproject)
+
 SECOND_PASS_FAILED = False
 if not NO_YAML:
-    print("\n11. the same suite again, with PyYAML blocked")
+    print("\n12. the same suite again, with PyYAML blocked")
     import subprocess
     env = dict(os.environ, CLAIM_CHECK_SELFTEST_NO_YAML="1")
     proc = subprocess.run([sys.executable, os.path.abspath(__file__)], env=env,

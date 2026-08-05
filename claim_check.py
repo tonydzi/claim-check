@@ -29,7 +29,7 @@ import re
 import subprocess
 import sys
 
-__version__ = "1.0.1"
+__version__ = "1.1.0"
 
 OK, DRIFT, MISSING, ERROR = "OK", "DRIFT", "MISSING", "ERROR"
 
@@ -44,11 +44,28 @@ class ConfigError(Exception):
 # config loading: PyYAML when present, otherwise a strict small parser
 # --------------------------------------------------------------------------- #
 
+def read_text(path, what, newline=None):
+    """Read a UTF-8 file, or say why not in the one language this tool speaks.
+
+    A file that is unreadable -- wrong encoding, a permission bit, a broken
+    symlink -- is an ERROR, not a DRIFT. Letting the decoder raise would exit 1,
+    and exit 1 means "your documented number changed", which is a lie about the
+    document and hides a broken checkout.
+    """
+    try:
+        with open(path, "r", encoding="utf-8", newline=newline) as fh:
+            return fh.read()
+    except UnicodeDecodeError as exc:
+        raise ConfigError("%s is not UTF-8 text (%s at byte %d)"
+                          % (what, exc.reason, exc.start))
+    except (IOError, OSError) as exc:
+        raise ConfigError("cannot read %s: %s" % (what, exc))
+
+
 def load_config(path):
     if not os.path.isfile(path):
         raise ConfigError("no config file: %s" % path)
-    with open(path, "r", encoding="utf-8") as fh:
-        raw = fh.read()
+    raw = read_text(path, path)
     if path.endswith(".json"):
         try:
             return json.loads(raw)
@@ -322,8 +339,7 @@ def resolve_source(claim, root, allow_commands):
     path = safe_path(root, claim[kind])
     if not os.path.isfile(path):
         raise ConfigError("source file not found: %s" % claim[kind])
-    with open(path, "r", encoding="utf-8") as fh:
-        body = fh.read()
+    body = read_text(path, claim[kind])
 
     if kind == "json":
         if not claim.get("path"):
@@ -468,8 +484,11 @@ def check_claim(claim, root, allow_commands):
     if not os.path.isfile(doc_path):
         row["note"] = "doc not found: %s" % doc_rel
         return row, None
-    with open(doc_path, "r", encoding="utf-8", newline="") as fh:
-        body = fh.read()
+    try:
+        body = read_text(doc_path, doc_rel, newline="")
+    except ConfigError as exc:
+        row["note"] = str(exc)
+        return row, None
 
     hits = list(rx.finditer(body))
     row["occurrences"] = len(hits)
@@ -498,8 +517,7 @@ def apply_fix(fixes):
     """Rewrite drifted values in place. Returns the set of touched files."""
     touched = set()
     for doc_path, rx, expected in fixes:
-        with open(doc_path, "r", encoding="utf-8", newline="") as fh:
-            body = fh.read()
+        body = read_text(doc_path, doc_path, newline="")
         def swap(match):
             whole, inner = match.group(0), match.group(1)
             start = match.start(1) - match.start(0)
@@ -660,8 +678,10 @@ def run(config_path, root=".", fix=False, allow_commands=False,
             doc_path = os.path.join(root, doc)
             if not os.path.isfile(doc_path):
                 continue
-            with open(doc_path, "r", encoding="utf-8", newline="") as fh:
-                body = fh.read()
+            try:
+                body = read_text(doc_path, doc, newline="")
+            except ConfigError:
+                continue        # already an ERROR row; do not fail twice for it
             for cid in [row["id"] for row in rows if row["doc"] == doc and row["id"]]:
                 body = marker_regex(cid).sub(lambda m: " " * len(m.group(0)), body)
             for text, line in scan_unbacked(body, ignore):
@@ -754,10 +774,32 @@ def main(argv=None):
                annotations=not args.no_annotations)
 
 
-if __name__ == "__main__":
+def cli(argv=None):
+    """Entry point for the installed `claim-check` command.
+
+    The ConfigError -> exit 2 rule cannot live in the `__main__` guard alone: a
+    console script installed by pip never runs that guard, so a broken config
+    would surface as a traceback and exit 1 -- which the exit-code contract
+    reserves for DRIFT. A dead checker must not look like a clean result, and it
+    must not look like a drifted one either.
+    """
     try:
-        sys.exit(main())
+        return main(argv)
     except ConfigError as exc:                    # anything we forgot to catch
         print("::error::claim-check: %s" % exc)
         print("CLAIM-CHECK: %s -> ERROR" % exc)
-        sys.exit(EXIT_ERROR)
+        return EXIT_ERROR
+    except Exception:                             # noqa: BLE001 -- see below
+        # A crash is a broken checker, and a broken checker must not be reported
+        # as DRIFT. An uncaught exception exits 1, which is the code reserved for
+        # "your documented number changed" -- so CI would blame the document for
+        # a bug in this file. The traceback still goes to stderr; only the exit
+        # code is corrected.
+        import traceback
+        traceback.print_exc()
+        print("CLAIM-CHECK: claim-check crashed -> ERROR")
+        return EXIT_ERROR
+
+
+if __name__ == "__main__":
+    sys.exit(cli())

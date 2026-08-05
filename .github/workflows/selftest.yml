@@ -36,6 +36,79 @@ jobs:
           fi
           mv examples/REPORT.md.bak examples/REPORT.md
 
+  package:
+    # The wheel is a separate artifact from the repo checkout: the Action runs
+    # claim_check.py in place, `pip install claim-check` runs a console script.
+    # Nothing above exercises that path, so it gets its own job on the declared
+    # floor (3.8) and on current Python.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.8', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: build and validate the distributions
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+          twine check --strict dist/*
+
+      - name: install the wheel into a bare environment
+        run: |
+          python -m venv /tmp/pkgenv
+          /tmp/pkgenv/bin/pip install dist/*.whl
+          if /tmp/pkgenv/bin/python -c "import yaml" 2>/dev/null; then
+            echo "::error::PyYAML leaked into the bare env; the fallback parser would not be exercised"
+            exit 1
+          fi
+
+      - name: the sdist is installable too, and reports the same version
+        # `twine check` reads metadata; it never builds the sdist back into a
+        # package. A source release broken by a missing file passes that check
+        # and fails only for whoever runs `pip install --no-binary`.
+        run: |
+          python -m venv /tmp/sdistenv
+          /tmp/sdistenv/bin/pip install dist/*.tar.gz
+          module_v=$(/tmp/sdistenv/bin/python -c "import claim_check; print(claim_check.__version__)")
+          meta_v=$(/tmp/sdistenv/bin/python -c "from importlib.metadata import version; print(version('claim-check'))")
+          cli_v=$(/tmp/sdistenv/bin/claim-check --version)
+          echo "module=$module_v metadata=$meta_v cli=$cli_v"
+          [ "$module_v" = "$meta_v" ] && [ "$meta_v" = "$cli_v" ] \
+            || { echo "::error::version drift between __version__, metadata and the CLI"; exit 1; }
+
+      - name: the installed console script keeps the exit-code contract
+        run: |
+          # Every expected-failure below runs with `set +e`: under bash -e the
+          # non-zero exit would abort the step before it could be inspected, and
+          # a step that dies early looks green in exactly the wrong way.
+          rc_of() { set +e; "$@" >/dev/null 2>&1; local rc=$?; set -e; echo "$rc"; }
+          expect() {  # expect <wanted> <what> <cmd...>
+            local want="$1" what="$2"; shift 2
+            local got; got=$(rc_of "$@")
+            if [ "$got" != "$want" ]; then
+              echo "::error::$what: expected exit $want, got $got"; exit 1
+            fi
+            echo "ok: $what -> exit $got"
+          }
+          /tmp/pkgenv/bin/claim-check --version
+          expect 0 "the worked example reproduces" \
+            /tmp/pkgenv/bin/claim-check --config examples/claims.yml
+          sed -i.bak 's/<!--claim:unique-events-->744/<!--claim:unique-events-->700/' examples/REPORT.md
+          expect 1 "a drifted number is DRIFT" \
+            /tmp/pkgenv/bin/claim-check --config examples/claims.yml --no-annotations
+          mv examples/REPORT.md.bak examples/REPORT.md
+          # An unusable config must be ERROR: never 0 (a dead checker looking
+          # clean) and never 1 (a dead checker looking like drift).
+          expect 2 "an unusable config is ERROR" \
+            /tmp/pkgenv/bin/claim-check --config does-not-exist.yml
+          expect 2 "--no-fail-on-drift cannot downgrade ERROR" \
+            /tmp/pkgenv/bin/claim-check --config does-not-exist.yml --no-fail-on-drift
+
   dogfood:
     runs-on: ubuntu-latest
     steps:
