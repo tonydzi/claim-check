@@ -472,8 +472,14 @@ def _main_that_escapes(argv=None):
 _real_main = cc.main
 try:
     cc.main = _main_that_escapes
+    # Swallow the output: cli() prints a `::error::` line, and on a runner that
+    # is a workflow command -- the injected failure would show up as a red
+    # annotation on a green run, which is a worse lie than no annotation at all.
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        escaped_code = cc.cli([])
     check("cli() converts an escaped ConfigError into ERROR",
-          cc.cli([]) == cc.EXIT_ERROR, cc.cli([]))
+          escaped_code == cc.EXIT_ERROR, escaped_code)
     # the mutant: without the wrapper the same input raises instead of returning
     escaped = False
     try:
