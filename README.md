@@ -2,8 +2,8 @@
 
 **Every number you publish is a claim. Prove it in CI.**
 
-[![selftest](https://github.com/Palo-Alto-AI-Research-Lab/claim-check/actions/workflows/selftest.yml/badge.svg)](https://github.com/Palo-Alto-AI-Research-Lab/claim-check/actions/workflows/selftest.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/Palo-Alto-AI-Research-Lab/claim-check/blob/main/LICENSE)
+[![selftest](https://github.com/tonydzi/claim-check/actions/workflows/selftest.yml/badge.svg)](https://github.com/tonydzi/claim-check/actions/workflows/selftest.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/tonydzi/claim-check/blob/main/LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue.svg)](#requirements)
 [![deps: none](https://img.shields.io/badge/dependencies-none-lightgrey.svg)](#requirements)
 [![no LLM](https://img.shields.io/badge/LLM-not%20used-lightgrey.svg)](#what-this-is-not)
@@ -47,7 +47,7 @@ Two ways to run the same gate, and they share one file.
 **On your machine, as a command** — for checking a doc before you push it:
 
 ```bash
-pip install "git+https://github.com/Palo-Alto-AI-Research-Lab/claim-check"
+pip install "git+https://github.com/tonydzi/claim-check"
 claim-check --config .github/claims.yml
 ```
 
@@ -228,14 +228,14 @@ unbacked_ignore:
 ## Running it locally
 
 ```bash
-git clone https://github.com/Palo-Alto-AI-Research-Lab/claim-check
+git clone https://github.com/tonydzi/claim-check
 cd claim-check
 python3 selftest.py                                  # 108 checks, every one broken by a mutant first
 python3 claim_check.py --config examples/claims.yml  # the worked example
 ```
 
 The selftest count above is itself a claim: `selftest.py` writes
-`selftest-report.json`, [`.github/claims.yml`](https://github.com/Palo-Alto-AI-Research-Lab/claim-check/blob/main/.github/claims.yml) binds this README to
+`selftest-report.json`, [`.github/claims.yml`](https://github.com/tonydzi/claim-check/blob/main/.github/claims.yml) binds this README to
 it, and CI runs the gate on its own repository. If someone adds a check and forgets this
 line, the build goes red.
 
@@ -261,14 +261,14 @@ This action is that pattern generalized, so it can sit in anyone's CI.
 
 Related gates from the same practice:
 
-- [verified-ops-starter](https://github.com/Palo-Alto-AI-Research-Lab/verified-ops-starter) —
+- [verified-ops-starter](https://github.com/tonydzi/verified-ops-starter) —
   your scheduled job says `exit 0`; prove it did the work.
-- [verbatim-citation-gate](https://github.com/Palo-Alto-AI-Research-Lab/verbatim-citation-gate) —
+- [verbatim-citation-gate](https://github.com/tonydzi/verbatim-citation-gate) —
   catch fabricated RAG citations before they reach the user.
 
 ## Roadmap
 
-**Now — [v1.0.1](https://github.com/Palo-Alto-AI-Research-Lab/claim-check/releases).** The action
+**Now — [v1.0.1](https://github.com/tonydzi/claim-check/releases).** The action
 itself: bind a number in prose to the artifact that produced it, `cmd:` and file sources, tolerance
 and format handling, an exit-code contract, fix-instead-of-fail, and the experimental unbacked-number
 pass.
@@ -308,7 +308,7 @@ anything it does not understand.
 
 ## License
 
-MIT — see [LICENSE](https://github.com/Palo-Alto-AI-Research-Lab/claim-check/blob/main/LICENSE).
+MIT — see [LICENSE](https://github.com/tonydzi/claim-check/blob/main/LICENSE).
 
 ---
 
@@ -332,4 +332,4 @@ Its closest neighbours in the **gates** layer: [`break-it-first`](https://github
 This project is built by a human + AI team, and the git log says so: Claude writes most of
 the code, Codex and Grok review it, Gemini feeds the research. Each is credited on a commit
 **only if its output changed that commit's content** — no decorative credits. Lab-wide
-policy, one source for every repo: [AI-CONTRIBUTORS.md](https://github.com/Palo-Alto-AI-Research-Lab/.github/blob/main/AI-CONTRIBUTORS.md).
+policy, one source for every repo: [AI-CONTRIBUTORS.md](https://github.com/tonydzi/.github/blob/main/AI-CONTRIBUTORS.md).
