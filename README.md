@@ -39,7 +39,7 @@ Two ways to run the same gate, and they share one file.
 **In CI, as a GitHub Action** — nothing to install:
 
 ```yaml
-- uses: Palo-Alto-AI-Research-Lab/claim-check@v1
+- uses: tonydzi/claim-check@v1
   with:
     claims-file: .github/claims.yml
 ```
@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: Palo-Alto-AI-Research-Lab/claim-check@v1
+      - uses: tonydzi/claim-check@v1
         with:
           claims-file: .github/claims.yml
 ```
@@ -178,7 +178,7 @@ a clean result. That is the whole point of the tool applied to itself.
 ## Fixing instead of failing
 
 ```yaml
-      - uses: Palo-Alto-AI-Research-Lab/claim-check@v1
+      - uses: tonydzi/claim-check@v1
         with:
           fix: 'true'
           fail-on-drift: 'false'

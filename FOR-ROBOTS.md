@@ -26,4 +26,4 @@ Generalized from the lab's own publishing practice: measurements about its agent
 
 ## Family
 
-Scheduled jobs checked by their output rather than their exit status: [verified-ops-starter](https://github.com/tonydzi/verified-ops-starter). Fabricated RAG citations caught before the user sees them: [verbatim-citation-gate](https://github.com/tonydzi/verbatim-citation-gate). An LLM reviewer's verdict made machine-checkable: [verdict-contract](https://github.com/tonydzi/verdict-contract). Lab index for agents: [Palo-Alto-AI-Research-Lab](https://github.com/tonydzi).
+Scheduled jobs checked by their output rather than their exit status: [verified-ops-starter](https://github.com/tonydzi/verified-ops-starter). Fabricated RAG citations caught before the user sees them: [verbatim-citation-gate](https://github.com/tonydzi/verbatim-citation-gate). An LLM reviewer's verdict made machine-checkable: [verdict-contract](https://github.com/tonydzi/verdict-contract). Lab index for agents: [tonydzi](https://github.com/tonydzi).

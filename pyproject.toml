@@ -46,10 +46,10 @@ yaml = ["PyYAML>=5.1"]
 claim-check = "claim_check:cli"
 
 [project.urls]
-Homepage = "https://github.com/Palo-Alto-AI-Research-Lab/claim-check"
-Repository = "https://github.com/Palo-Alto-AI-Research-Lab/claim-check"
-Issues = "https://github.com/Palo-Alto-AI-Research-Lab/claim-check/issues"
-Changelog = "https://github.com/Palo-Alto-AI-Research-Lab/claim-check/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/tonydzi/claim-check"
+Repository = "https://github.com/tonydzi/claim-check"
+Issues = "https://github.com/tonydzi/claim-check/issues"
+Changelog = "https://github.com/tonydzi/claim-check/blob/main/CHANGELOG.md"
 
 [tool.hatch.version]
 path = "claim_check.py"
