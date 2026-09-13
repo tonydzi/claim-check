@@ -10,11 +10,10 @@
 
 A README says *"handles 12,000 req/s"*, *"44 tests"*, *"0 known CVEs"*, *"61% autonomous"*.
 The benchmark was rerun in March, the suite grew to 96 checks, a CVE landed in May.
-Nothing in CI noticed, because nothing in CI knew the number was ever tied to anything.
+Nothing in CI noticed, because nothing in CI knew the number was ever tied to anything — which is the gap [claim_check.py](claim_check.py) closes.
 
 `claim-check` binds each published number to the artifact it came from — a JSON file, a
-log, a command's output — and recomputes it on every run. When the doc and the artifact
-disagree, the build fails and names both sides.
+log, a command's output — and recomputes it on every run. When the doc and the artifact disagree, [claim_check.py](claim_check.py) fails the build and names both sides.
 
 ```
 | claim            | doc                | status    | doc says | source says |
@@ -30,13 +29,13 @@ what went wrong:
 CLAIM-CHECK: 6 claims - 4 ok - 2 drift - 0 errors -> DRIFT
 ```
 
-No LLM, no API key, no network, no dependencies. The verdict is an exit code.
+[claim_check.py](claim_check.py) uses no LLM, no API key, no network and no dependencies. The verdict is an exit code.
 
 ## Install
 
-Two ways to run the same gate, and they share one file.
+Two ways to run the same gate, and they share one file: [claim_check.py](claim_check.py).
 
-**In CI, as a GitHub Action** — nothing to install:
+**In CI, as a GitHub Action** defined by [action.yml](action.yml) — nothing to install:
 
 ```yaml
 - uses: tonydzi/claim-check@v1
@@ -58,7 +57,7 @@ claim-check --config .github/claims.yml
 > only ever asks whether a number still comes out of the artifact you bound it to.
 
 The command and the Action run the same `claim_check.py` and honour the same
-[exit-code contract](#exit-code-contract). PyYAML is optional in both
+[exit-code contract](#exit-code-contract). PyYAML is optional in both, as [pyproject.toml](pyproject.toml) declares
 (`pip install "claim-check[yaml] @ git+…"` if your claims file needs full YAML);
 without it a small strict parser handles the file and refuses, by line number,
 anything it does not understand.
@@ -107,8 +106,7 @@ Handles <!--claim:throughput-->12,000<!--/claim--> req/s
 at a pass rate of 99.4%.
 ```
 
-That is the whole setup. `throughput` is checked through its marker, `pass-rate`
-through the sentence it lives in.
+That is the whole setup, and [examples/claims.yml](examples/claims.yml) is a working copy of it. `throughput` is checked through its marker, `pass-rate` through the sentence it lives in.
 
 ## Two ways to bind a number
 
@@ -119,11 +117,9 @@ through the sentence it lives in.
 
 Both modes support `--fix`. Both report the exact line number.
 
-One rule worth knowing before you write a pattern: **a claim binds every occurrence of
-its marker or pattern in the doc.** Three sentences matching `"pass rate of {value}%"`
+One rule worth knowing before you write a pattern, and [claim_check.py](claim_check.py) enforces it: **a claim binds every occurrence of its marker or pattern in the doc.** Three sentences matching `"pass rate of {value}%"`
 are three copies of one claim — they must all agree with the source, and `--fix` sets all
-three. If two sentences share a skeleton but mean different numbers, make the patterns
-more specific or give each its own marker.
+three. If two sentences share a skeleton but mean different numbers, make the patterns more specific or give each its own marker, the way [examples/claims.yml](examples/claims.yml) does.
 
 ## Sources
 
@@ -141,7 +137,7 @@ Exactly one per claim:
 
 ## Formats and tolerance
 
-The source is the truth; the doc is allowed to be readable.
+The source is the truth; the doc is allowed to be readable, and [claim_check.py](claim_check.py) is what keeps the two in step.
 
 | `format:` | `0.6197` becomes | | |
 |---|---|---|---|
@@ -149,10 +145,9 @@ The source is the truth; the doc is allowed to be readable.
 | `round:2` | `0.62` | `percent:1` | `62.0` |
 | `{:.3f}` (any Python format spec) | `0.620` | | |
 
-`percent:N` multiplies by 100, so it expects a fraction. If your artifact already stores
-`62.0`, use `round:1` and keep the `%` in the surrounding text.
+`percent:N` in [claim_check.py](claim_check.py) multiplies by 100, so it expects a fraction. If your artifact already stores `62.0` — as [examples/metrics.json](examples/metrics.json) does — use `round:1` and keep the `%` in the surrounding text.
 
-Formatting differences are forgiven — `1234` in the artifact matches `1,234` in the doc.
+Formatting differences are forgiven by [claim_check.py](claim_check.py) — `1234` in the artifact matches `1,234` in the doc.
 Arithmetic differences are not, unless you allow them explicitly:
 
 ```yaml
@@ -168,12 +163,10 @@ tolerance: "2%"    # relative
 2  ERROR   -- the check itself could not run: missing config, missing source, bad path
 ```
 
-The last line of stdout is always a one-line verdict, so a wrapper can read it without
-parsing anything.
+The last line of stdout is always a one-line verdict, as [examples/REPORT.md](examples/REPORT.md) shows, so a wrapper can read it without parsing anything.
 
-`fail-on-drift: false` downgrades **1** to **0** when you want a warning-only rollout.
-It cannot downgrade **2**: a checker that could not read its source must never look like
-a clean result. That is the whole point of the tool applied to itself.
+`fail-on-drift: false` in [action.yml](action.yml) downgrades **1** to **0** when you want a warning-only rollout.
+It cannot downgrade **2**: a checker that could not read its source must never look like a clean result, and [claim_check.py](claim_check.py) refuses to. That is the whole point of the tool applied to itself, in [.github/claims.yml](.github/claims.yml).
 
 ## Fixing instead of failing
 
@@ -187,27 +180,23 @@ a clean result. That is the whole point of the tool applied to itself.
           commit-message: 'docs: refresh published numbers'
 ```
 
-`--fix` rewrites only the claimed values — every occurrence, in place. The selftest
-asserts the rest of the file comes out byte-identical.
+`--fix` in [claim_check.py](claim_check.py) rewrites only the claimed values — every occurrence, in place. [selftest.py](selftest.py) asserts the rest of the file comes out byte-identical.
 
 ## Security: `cmd:` and forks
 
-`cmd:` runs arbitrary shell, and on `pull_request` the claims file is checked out **from
-the fork**. So `cmd:` is refused unless you pass `allow-commands: true`, and the refusal
-says why. Recommended split:
+`cmd:` runs arbitrary shell, and on `pull_request` [action.yml](action.yml) checks the claims file out **from the fork**. So `cmd:` is refused unless you pass `allow-commands: true` to [action.yml](action.yml), and the refusal says why. Recommended split:
 
 - `pull_request` workflows: leave `allow-commands` off, use `json:` / `text:` sources;
 - `push` on your own branches: turn it on if you need it.
 
-Even with `allow-commands: true`, the action **refuses to run commands when the pull
-request comes from a fork** — that combination is a shell handed to a stranger. Override
+Even with `allow-commands: true`, [action.yml](action.yml) **refuses to run commands when the pull request comes from a fork** — that combination is a shell handed to a stranger. Override
 it with `trust-fork-commands: true` only if you have read the sentence before this one
 twice.
 
 Two more things follow from the claims file being attacker-controlled on a fork PR:
 
 - **every path is confined to the checkout.** `doc: ../../etc/passwd` or any absolute
-  path is refused by name, so `--fix` cannot write outside the workspace;
+  path is refused by name in [claim_check.py](claim_check.py), so `--fix` cannot write outside the workspace;
 - **a command cannot idle the runner.** `cmd:` is killed after 60 seconds (`timeout:`
   per claim) and a killed command is an ERROR, not a pass.
 
@@ -316,9 +305,7 @@ MIT — see [LICENSE](https://github.com/tonydzi/claim-check/blob/main/LICENSE).
 
 ## 🧩 One piece of a working system
 
-This repository is one piece lifted out of a live operation: one non-technical founder, an AI
-cofounder, and a fleet of machines that reach consensus with each other and wake the human only
-for money or the irreversible. It was extracted after it survived production, not written as a
+This repository is one piece lifted out of a live operation mapped in [SYSTEM.md](https://github.com/tonydzi/tonydzi/blob/main/SYSTEM.md): one non-technical founder, an AI cofounder, and a fleet of machines that reach consensus with each other and wake the human only for money or the irreversible. It was extracted after it survived production, not written as a
 demo — and it runs on its own: nothing here phones home to the rest.
 
 **See how the whole thing fits together → [SYSTEM.md](https://github.com/tonydzi/tonydzi/blob/main/SYSTEM.md)**
@@ -329,7 +316,6 @@ Its closest neighbours in the **gates** layer: [`break-it-first`](https://github
 
 ## AI contributors
 
-This project is built by a human + AI team, and the git log says so: Claude writes most of
-the code, Codex and Grok review it, Gemini feeds the research. Each is credited on a commit
+This project is built by a human + AI team, and the git log says so under the rules in [AI-CONTRIBUTORS.md](https://github.com/tonydzi/.github/blob/main/AI-CONTRIBUTORS.md): Claude writes most of the code, Codex and Grok review it, Gemini feeds the research. Each is credited on a commit
 **only if its output changed that commit's content** — no decorative credits. Lab-wide
 policy, one source for every repo: [AI-CONTRIBUTORS.md](https://github.com/tonydzi/.github/blob/main/AI-CONTRIBUTORS.md).
