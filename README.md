@@ -312,6 +312,8 @@ not written as a demo — and it runs on its own: nothing here phones home to th
 
 **See how the whole thing fits together → [SYSTEM.md](https://github.com/tonydzi/tonydzi/blob/main/SYSTEM.md)**
 
+**Want your machine in the fleet? → [Join the fleet](https://github.com/tonydzi/join-the-fleet)** (15 minutes, one link, no account with us)
+
 Its closest neighbours in the **gates** layer: [`verified-ops-starter`](https://github.com/tonydzi/verified-ops-starter) · [`oss-publish`](https://github.com/tonydzi/oss-publish) · [`agent-runtime-integrity-bench`](https://github.com/tonydzi/agent-runtime-integrity-bench)
 
 <!--ecosystem-map:end-->
