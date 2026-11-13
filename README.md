@@ -1,5 +1,78 @@
 # claim-check
 
+Fails your build when a number in your README no longer matches the file it came from.
+
+**Who it's for:** anyone who publishes numbers in docs ("44 tests", "12,000 req/s") and wants them to stay true.
+**What you get:** a green or red check in GitHub CI. Red tells you which number is stale, where, and what it should say.
+
+## Quick start
+1. Wrap the number in your README: `<!--claim:tests-->44<!--/claim-->`.
+2. Create `.github/claims.yml` that says where the true value lives, for example `json: report.json` and `path: results.tests`.
+3. Add a workflow step: `- uses: tonydzi/claim-check@v1` with `claims-file: .github/claims.yml`.
+
+**Done when:** the "claims" check in your pull request is green, and turns red if you change the number by hand.
+
+> Want an AI agent to do it for you? Paste this to Claude Code / Codex / Cursor:
+> "Read the 'For AI agents' section of https://github.com/tonydzi/claim-check and set it up for me."
+
+## For AI agents
+
+### Preconditions
+- Python 3.8 or newer on the machine or CI runner. No other dependency (PyYAML is optional).
+- A repo with a doc containing numbers, and a file (JSON, log, or command output) that produces each number.
+- Ask the human: which numbers to bind, and which file or JSON path is the source of truth for each.
+
+### Install
+Pick one. They run the same `claim_check.py`.
+```bash
+# CI (GitHub Action), nothing to install: add to a workflow
+#   - uses: actions/checkout@v4
+#   - uses: tonydzi/claim-check@v1
+#     with:
+#       claims-file: .github/claims.yml
+# Local command
+pip install "git+https://github.com/tonydzi/claim-check"
+# Optional full YAML support
+pip install "claim-check[yaml] @ git+https://github.com/tonydzi/claim-check"
+```
+The package name has a hyphen. `claimcheck` on PyPI is a different project.
+
+### Configure
+1. In the doc, mark each number: `<!--claim:<id>-->VALUE<!--/claim-->` (marker mode), or set `pattern: "pass rate of {value}%"` in the claim (pattern mode).
+2. Write `.github/claims.yml`:
+```yaml
+defaults:
+  doc: README.md
+  json: benchmarks/latest.json
+claims:
+  - id: throughput
+    path: results.requests_per_second
+    format: comma
+```
+3. Working copy to start from: `examples/claims.yml`. Sources can be `json:`, `text:` or `cmd:`.
+4. `cmd:` sources run shell and are off by default. Enable only with `--allow-commands` (CLI) or `allow-commands: true` (Action), and only for configs you trust.
+
+### Verify
+```bash
+claim-check --version
+claim-check --config .github/claims.yml --no-annotations
+echo $?
+```
+Expected: last line like `CLAIM-CHECK: 1 claims - 1 ok - 0 drift - 0 errors -> OK`, exit code `0`. Exit `1` = DRIFT (a number is stale), exit `2` = ERROR (the check could not run). Without installing, from a clone: `python claim_check.py --config examples/claims.yml --no-annotations` gives `6 claims - 6 ok` and exit `0`.
+
+### Uninstall / rollback
+- Local: `pip uninstall claim-check`.
+- CI: delete the `uses: tonydzi/claim-check@v1` step and `.github/claims.yml`. Remove the `<!--claim:...-->` markers from the doc (they are invisible HTML comments, harmless if left).
+- `--fix` rewrites docs in place. Run it on a clean git tree and review the diff, or `git checkout` the doc to roll back.
+
+### Rules for the agent
+- Never set `allow-commands` or `trust-fork-commands` unless the human asks. A `cmd:` source on a fork pull request hands the runner to a stranger.
+- Do not use `fail-on-drift: false` to make a red build green. It is only for a warning-only rollout, and it cannot hide exit `2`.
+- Do not edit a number in the doc to match a wrong artifact. Fix the artifact or ask the human.
+- Do not commit `--fix` output without showing the human the diff.
+
+## Details
+
 **Every number you publish is a claim. Prove it in CI.**
 
 [![selftest](https://github.com/tonydzi/claim-check/actions/workflows/selftest.yml/badge.svg)](https://github.com/tonydzi/claim-check/actions/workflows/selftest.yml)
