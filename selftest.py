@@ -189,14 +189,16 @@ with repo(base_files(config=CMD_CONFIG.replace('echo 12345', 'exit 3'))) as root
     code, out, report = run(root, allow_commands=True)
     check("MUTANT failing command -> exit 2", code == 2, out)
 
+# Portable JSON printer: `echo '{...}'` keeps the single quotes under cmd.exe.
+_PY = sys.executable.replace('\\', '/') if ' ' not in sys.executable else 'python'
 JSON_CMD = """
 claims:
   - id: total
     doc: DOC.md
-    cmd: "echo '{\\"a\\": {\\"b\\": 12345}}'"
+    cmd: "%s -c \\"print(str(dict(a=dict(b=12345))).replace(chr(39),chr(34)))\\""
     path: a.b
     format: comma
-"""
+""" % _PY
 with repo(base_files(config=JSON_CMD)) as root:
     code, out, report = run(root, allow_commands=True)
     check("cmd: + path: parses JSON stdout", code == 0, out)
