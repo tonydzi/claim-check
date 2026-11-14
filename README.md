@@ -58,7 +58,7 @@ claim-check --version
 claim-check --config .github/claims.yml --no-annotations
 echo $?
 ```
-Expected: last line like `CLAIM-CHECK: 1 claims - 1 ok - 0 drift - 0 errors -> OK`, exit code `0`. Exit `1` = DRIFT (a number is stale), exit `2` = ERROR (the check could not run). Without installing, from a clone: `python claim_check.py --config examples/claims.yml --no-annotations` gives `6 claims - 6 ok` and exit `0`.
+Expected: last line like `CLAIM-CHECK: 1 claims - 1 ok - 0 drift - 0 errors -> OK`, exit code `0`. Exit `1` = DRIFT (a number is stale), exit `2` = ERROR (the check could not run). To prove the check can go red, change one bound number by hand and rerun: expect exit `1` and a DRIFT line. Without installing, from a clone: `python claim_check.py --config examples/claims.yml --no-annotations` gives `6 claims - 6 ok` and exit `0`.
 
 ### Uninstall / rollback
 - Local: `pip uninstall claim-check`.
