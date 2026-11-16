@@ -31,9 +31,9 @@ Pick one. They run the same `claim_check.py`.
 #     with:
 #       claims-file: .github/claims.yml
 # Local command
-pip install "git+https://github.com/tonydzi/claim-check"
+pip install claim-check-ci
 # Optional full YAML support
-pip install "claim-check[yaml] @ git+https://github.com/tonydzi/claim-check"
+pip install "claim-check-ci[yaml]"
 ```
 The package name has a hyphen. `claimcheck` on PyPI is a different project.
 
@@ -119,7 +119,7 @@ Two ways to run the same gate, and they share one file: [claim_check.py](claim_c
 **On your machine, as a command** — for checking a doc before you push it:
 
 ```bash
-pip install "git+https://github.com/tonydzi/claim-check"
+pip install claim-check-ci
 claim-check --config .github/claims.yml
 ```
 
@@ -131,7 +131,7 @@ claim-check --config .github/claims.yml
 
 The command and the Action run the same `claim_check.py` and honour the same
 [exit-code contract](#exit-code-contract). PyYAML is optional in both, as [pyproject.toml](pyproject.toml) declares
-(`pip install "claim-check[yaml] @ git+…"` if your claims file needs full YAML);
+(`pip install "claim-check-ci[yaml]"` if your claims file needs full YAML);
 without it a small strict parser handles the file and refuses, by line number,
 anything it does not understand.
 
