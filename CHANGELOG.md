@@ -2,7 +2,7 @@
 
 ## v1.1.0 - 2026-08-05
 
-**Installable as a command.** `pip install claim-check` gives a `claim-check` CLI that
+**Installable as a command.** `pip install claim-check-ci` gives a `claim-check` CLI that
 runs the same file as the Action and honours the same exit-code contract — for checking a
 doc before you push it, not only after. The Action is unchanged and keeps working exactly
 as before.

@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "claim-check"
+name = "claim-check-ci"
 dynamic = ["version"]
 description = "Every number you publish is a claim. Bind it to the artifact it came from and prove it in CI -- no LLM, no network, no dependencies."
 readme = "README.md"
